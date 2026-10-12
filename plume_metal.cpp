@@ -3022,6 +3022,43 @@ namespace plume {
                 dstOrigin
             );
             activeBlitEncoder->popDebugGroup();
+        } else if (dstLocation.type == RenderTextureCopyType::PLACED_FOOTPRINT && srcLocation.type == RenderTextureCopyType::SUBRESOURCE) {
+            assert(dstBuffer != nullptr);
+            assert(srcTexture != nullptr);
+
+            const uint32_t blockWidth = RenderFormatBlockWidth(srcTexture->desc.format);
+            const uint32_t blockSize = RenderFormatSize(srcTexture->desc.format);
+            const uint32_t horizontalBlocks = (dstLocation.placedFootprint.rowWidth + blockWidth - 1) / blockWidth;
+            const uint32_t verticalBlocks = (dstLocation.placedFootprint.height + blockWidth - 1) / blockWidth;
+            const uint32_t bytesPerRow = horizontalBlocks * blockSize;
+            const uint32_t bytesPerImage = bytesPerRow * verticalBlocks;
+            const uint64_t dstOffset = dstLocation.placedFootprint.offset + dstZ * bytesPerImage + (dstY / blockWidth) * bytesPerRow + (dstX / blockWidth) * blockSize;
+
+            MTL::Origin srcOrigin;
+            MTL::Size size;
+
+            if (srcBox != nullptr) {
+                srcOrigin = { NS::UInteger(srcBox->left), NS::UInteger(srcBox->top), NS::UInteger(srcBox->front) };
+                size = { NS::UInteger(srcBox->right - srcBox->left), NS::UInteger(srcBox->bottom - srcBox->top), NS::UInteger(srcBox->back - srcBox->front) };
+            } else {
+                const uint32_t mipLevel = srcLocation.subresource.mipLevel;
+                srcOrigin = { 0, 0, 0 };
+                size = { std::max(srcTexture->desc.width >> mipLevel, 1U), std::max(srcTexture->desc.height >> mipLevel, 1U), std::max(srcTexture->desc.depth >> mipLevel, 1U) };
+            }
+
+            activeBlitEncoder->pushDebugGroup(MTLSTR("CopyTextureRegionReadback"));
+            activeBlitEncoder->copyFromTexture(
+                srcTexture->mtl,
+                srcLocation.subresource.arrayIndex,
+                srcLocation.subresource.mipLevel,
+                srcOrigin,
+                size,
+                dstBuffer->mtl,
+                dstOffset,
+                bytesPerRow,
+                bytesPerImage
+            );
+            activeBlitEncoder->popDebugGroup();
         } else {
             assert(dstTexture != nullptr);
             assert(srcTexture != nullptr);

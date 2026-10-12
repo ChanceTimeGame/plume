@@ -3235,6 +3235,40 @@ namespace plume {
             imageCopy.imageExtent.depth = srcLocation.placedFootprint.depth;
             vkCmdCopyBufferToImage(vk, srcBuffer->vk, dstTexture->vk, toImageLayout(dstTexture->textureLayout), 1, &imageCopy);
         }
+        else if ((dstLocation.type == RenderTextureCopyType::PLACED_FOOTPRINT) && (srcLocation.type == RenderTextureCopyType::SUBRESOURCE)) {
+            assert(dstBuffer != nullptr);
+            assert(srcTexture != nullptr);
+
+            const uint32_t blockWidth = RenderFormatBlockWidth(srcTexture->desc.format);
+            const uint32_t blockSize = RenderFormatSize(srcTexture->desc.format);
+            const uint32_t horizontalBlocks = (dstLocation.placedFootprint.rowWidth + blockWidth - 1) / blockWidth;
+            const uint32_t verticalBlocks = (dstLocation.placedFootprint.height + blockWidth - 1) / blockWidth;
+            const uint32_t bytesPerRow = horizontalBlocks * blockSize;
+            const uint32_t bytesPerImage = bytesPerRow * verticalBlocks;
+            const uint32_t mipLevel = srcLocation.subresource.mipLevel;
+            VkBufferImageCopy imageCopy = {};
+            imageCopy.bufferOffset = dstLocation.placedFootprint.offset + dstZ * bytesPerImage + (dstY / blockWidth) * bytesPerRow + (dstX / blockWidth) * blockSize;
+            imageCopy.bufferRowLength = horizontalBlocks * blockWidth;
+            imageCopy.bufferImageHeight = verticalBlocks * blockWidth;
+            imageCopy.imageSubresource.aspectMask = toAspectFlags(srcTexture->desc.format, srcTexture->desc.flags);
+            imageCopy.imageSubresource.baseArrayLayer = srcLocation.subresource.arrayIndex;
+            imageCopy.imageSubresource.layerCount = 1;
+            imageCopy.imageSubresource.mipLevel = mipLevel;
+            if (srcBox != nullptr) {
+                imageCopy.imageOffset.x = srcBox->left;
+                imageCopy.imageOffset.y = srcBox->top;
+                imageCopy.imageOffset.z = srcBox->front;
+                imageCopy.imageExtent.width = srcBox->right - srcBox->left;
+                imageCopy.imageExtent.height = srcBox->bottom - srcBox->top;
+                imageCopy.imageExtent.depth = srcBox->back - srcBox->front;
+            }
+            else {
+                imageCopy.imageExtent.width = std::max(srcTexture->desc.width >> mipLevel, 1U);
+                imageCopy.imageExtent.height = std::max(srcTexture->desc.height >> mipLevel, 1U);
+                imageCopy.imageExtent.depth = std::max(srcTexture->desc.depth >> mipLevel, 1U);
+            }
+            vkCmdCopyImageToBuffer(vk, srcTexture->vk, toImageLayout(srcTexture->textureLayout), dstBuffer->vk, 1, &imageCopy);
+        }
         else {
             VkImageCopy imageCopy = {};
             imageCopy.srcSubresource.aspectMask = toAspectFlags(srcTexture->desc.format, srcTexture->desc.flags);
