@@ -1,12 +1,12 @@
 [submodule "contrib/volk"]
 	path = contrib/volk
-	url = https://github.com/zeux/volk
+	url = https://github.com/Taylor8484/volk
 [submodule "contrib/VulkanMemoryAllocator"]
 	path = contrib/VulkanMemoryAllocator
-	url = https://github.com/GPUOpen-LibrariesAndSDKs/VulkanMemoryAllocator
+	url = https://github.com/Taylor8484/VulkanMemoryAllocator
 [submodule "contrib/Vulkan-Headers"]
 	path = contrib/Vulkan-Headers
-	url = https://github.com/KhronosGroup/Vulkan-Headers
+	url = https://github.com/Taylor8484/Vulkan-Headers
 [submodule "contrib/D3D12MemoryAllocator"]
 	path = contrib/D3D12MemoryAllocator
-	url = https://github.com/GPUOpen-LibrariesAndSDKs/D3D12MemoryAllocator
+	url = https://github.com/Taylor8484/D3D12MemoryAllocator
